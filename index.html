@@ -1,0 +1,3149 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Jojo os</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        .tab-button.active {
+            color: #3b82f6;
+        }
+        
+        .tab-button.active .tab-indicator {
+            background-color: #3b82f6;
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .bounce-in {
+            animation: bounceIn 0.3s ease-out;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .content-area {
+            height: calc(100% - 56px);
+            overflow-y: auto;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* 新增：修复底部选择栏样式 */
+        #selection-bar {
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 移动端安全区域适配 */
+        @media (max-width: 640px) {
+            #selection-bar {
+                border-radius: 12px 12px 0 0;
+                padding: 12px;
+            }
+            
+            .contact-checkbox {
+                min-width: 20px;
+                min-height: 20px;
+            }
+        }
+        
+        /* 确保页面布局正确 */
+        .phone-container {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .page-content-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* (已移除临时安全隐藏规则) */
+    </style>
+    </head>
+
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <!-- 全局创建弹窗（顶层） -->
+    <div id="create-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" style="z-index:9999;">
+        <div class="w-[320px] bg-white rounded-xl p-4 shadow-xl">
+            <h3 class="text-lg font-semibold mb-3">创建</h3>
+            <div class="space-y-3">
+                <button class="w-full text-left bg-gray-50 px-4 py-3 rounded-lg" onclick="openProjectCreate()">新增项目</button>
+                <button class="w-full text-left bg-gray-50 px-4 py-3 rounded-lg" onclick="openTaskCreate()">新增任务</button>
+            </div>
+            <div class="mt-4 text-right">
+                <button class="text-sm text-gray-500" onclick="closeCreateModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 手机容器 -->
+    <div class="w-[375px] h-[812px] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden phone-container">
+        
+        <!-- 状态栏 -->
+        <div class="h-10 bg-white flex items-center justify-between px-4 text-xs text-gray-600">
+            <span>9:41</span>
+            <div class="flex items-center gap-1">
+                <iconify-icon icon="mdi:signal" class="text-sm"></iconify-icon>
+                <iconify-icon icon="mdi:wifi" class="text-sm"></iconify-icon>
+                <iconify-icon icon="mdi:battery" class="text-sm"></iconify-icon>
+            </div>
+        </div>
+        
+        <!-- 页面内容区域 -->
+        <div class="page-content-wrapper">
+
+            <!-- 新增项目页面 -->
+            <div class="page" id="project-create">
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('project-list-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">新增项目</h1>
+                    </div>
+                </div>
+                <div class="content-area p-4 bg-gray-50">
+                    <form id="project-create-form" class="space-y-4" onsubmit="createProjectSubmit(event)">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">项目名称</label>
+                            <input id="proj-name" type="text" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3" required />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">项目描述</label>
+                            <textarea id="proj-desc" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3" rows="4"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">项目 Logo</label>
+                            <input id="proj-logo" type="file" accept="image/*" class="w-full" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">项目类型</label>
+                                <select id="proj-type" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                    <option value="Hourly">Hourly</option>
+                                    <option value="Fixed">Fixed</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">项目经理</label>
+                                <select id="proj-manager" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                    <option>Jennifer Pang</option>
+                                    <option>Li Hua</option>
+                                    <option>David Chen</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">开始时间</label>
+                                <input id="proj-start" type="date" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2" />
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">结束时间</label>
+                                <input id="proj-end" type="date" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 mb-1">选择团队成员（多选）</label>
+                            <select id="proj-team" multiple class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 h-28">
+                                <option>Jennifer Pang</option>
+                                <option>Li Hua</option>
+                                <option>David Chen</option>
+                                <option>Zhang San</option>
+                                <option>Li Si</option>
+                            </select>
+                        </div>
+                        <div class="flex justify-between pt-4">
+                            <button type="button" class="bg-gray-100 px-4 py-2 rounded-lg" onclick="showPage('project-page')">取消</button>
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg">创建项目</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 新增任务页面 -->
+            <div class="page" id="task-create">
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('project-list-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">新增任务</h1>
+                    </div>
+                </div>
+                <div class="content-area p-4 bg-gray-50">
+                    <form id="task-create-form" class="space-y-4" onsubmit="createTaskSubmit(event)">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">任务名称</label>
+                            <input id="task-name" type="text" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3" required />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">任务描述</label>
+                            <textarea id="task-desc" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3" rows="3"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">负责人</label>
+                                <select id="task-owner" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                    <option>Li Hua</option>
+                                    <option>David Chen</option>
+                                    <option>Jennifer Pang</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">分配人</label>
+                                <select id="task-creator" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                    <option>张三</option>
+                                    <option>李四</option>
+                                    <option>王五</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">优先级</label>
+                                <select id="task-priority" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                    <option>低</option>
+                                    <option>中</option>
+                                    <option>高</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">任务日期</label>
+                                <input id="task-date" type="date" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2" />
+                            </div>
+                        </div>
+                        <div class="flex justify-between pt-4">
+                            <button type="button" class="bg-gray-100 px-4 py-2 rounded-lg" onclick="showPage('project-list-page')">取消</button>
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg">创建任务</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 页面1: 消息页面 (首页) -->
+            <div class="page active" id="messages-page">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <h1 class="text-xl font-bold text-gray-800">消息</h1>
+                    <button class="p-2" onclick="showPage('new-chat')">
+                        <iconify-icon icon="mdi:plus" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+                
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 搜索框 -->
+                    <div class="relative mb-4">
+                        <input type="text" placeholder="搜索联系人、聊天记录" class="w-full bg-gray-100 rounded-xl pl-10 pr-4 py-3 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                        <iconify-icon icon="mdi:magnify" class="text-gray-400 absolute left-3 top-3 text-xl"></iconify-icon>
+                    </div>
+                    
+                    <!-- 消息列表 -->
+                    <div class="space-y-2">
+                        <div class="bg-white rounded-xl p-4 flex items-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="showPage('chat-detail')">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-3 relative">
+                                <iconify-icon icon="mdi:account" class="text-blue-500 text-2xl"></iconify-icon>
+                                <div class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-xs">3</span>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="font-semibold text-gray-800">产品部群聊</h3>
+                                    <span class="text-xs text-gray-500">10:25</span>
+                                </div>
+                                <p class="text-sm text-gray-500 truncate">Li Hua: We need to accelerate the...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-4 flex items-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="showPage('chat-detail-2')">
+                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <iconify-icon icon="mdi:account" class="text-green-500 text-2xl"></iconify-icon>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="font-semibold text-gray-800">张经理</h3>
+                                    <span class="text-xs text-gray-500">Yesterday</span>
+                                </div>
+                                <p class="text-sm text-gray-500 truncate">会议材料已经发送，请查收</p>
+                            </div>
+                        </div>
+                        
+                  
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 页面2: 工作台页面 -->
+            <div class="page" id="workplace-page">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <h1 class="text-xl font-bold text-gray-800">工作台</h1>
+                    <div class="flex items-center gap-3">
+                        <button class="p-2">
+                            <iconify-icon icon="mdi:bell" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <button class="p-2">
+                            <iconify-icon icon="mdi:qrcode-scan" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 快捷功能 -->
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="bg-white rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition-all duration-300 bounce-in" onclick="showPage('attendance-page')">
+                            <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-3">
+                                <iconify-icon icon="mdi:clock" class="text-red-500 text-2xl"></iconify-icon>
+                            </div>
+                            <span class="font-medium text-gray-700 text-sm">考勤打卡</span>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition-all duration-300 bounce-in" onclick="showPage('approval-menu')">
+                            <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-3">
+                                <iconify-icon icon="mdi:file-check" class="text-blue-500 text-2xl"></iconify-icon>
+                            </div>
+                            <span class="font-medium text-gray-700 text-sm">审批</span>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition-all duration-300 bounce-in" onclick="showPage('project-list-page')">
+                            <div class="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-3">
+                                <iconify-icon icon="mdi:clipboard-list" class="text-green-500 text-2xl"></iconify-icon>
+                            </div>
+                            <span class="font-medium text-gray-700 text-sm">项目管理</span>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition-all duration-300 bounce-in" onclick="showPage('policy-page')">
+                            <div class="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center mb-3">
+                                <iconify-icon icon="mdi:file-document" class="text-purple-500 text-2xl"></iconify-icon>
+                            </div>
+                            <span class="font-medium text-gray-700 text-sm">公司政策</span>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition-all duration-300 bounce-in" onclick="showPage('report-menu-page')">
+                            <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mb-3">
+                                <iconify-icon icon="mdi:chart-bar" class="text-amber-500 text-2xl"></iconify-icon>
+                            </div>
+                            <span class="font-medium text-gray-700 text-sm">数据报告</span>
+                        </div>
+                    </div>
+                    <!-- 数据概览 -->
+                    <div class="bg-white rounded-xl p-4 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">Work Overview</h3>
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <div class="text-2xl font-bold text-blue-500">12</div>
+                                <div class="text-xs text-gray-500">Pending approval</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-green-500">8</div>
+                                <div class="text-xs text-gray-500">Ongoing projects</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-purple-500">25</div>
+                                <div class="text-xs text-gray-500">Today's task</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 今日任务 -->
+                    <div class="bg-white rounded-xl p-4 mb-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold text-gray-800">Today's task</h3>
+                            <span class="text-sm text-blue-500">查看全部</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                                <div class="w-2 h-2 bg-red-500 rounded-full mr-3"></div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-800 text-sm">Complete the project proposal review.</h4>
+                                    <p class="text-xs text-gray-500">截止时间: 今天 18:00</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-800 text-sm">Prepare the meeting minutes.</h4>
+                                    <p class="text-xs text-gray-500">截止时间: 今天 17:00</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 页面3: 通讯录页面 -->
+            <div class="page" id="contacts-page">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center px-4 border-b border-gray-100 bg-white">
+                    <h1 class="text-xl font-bold text-gray-800">通讯录</h1>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 搜索框 -->
+                    <div class="relative mb-4">
+                        <input type="text" placeholder="搜索同事、部门" class="w-full bg-gray-100 rounded-xl pl-10 pr-4 py-3 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                        <iconify-icon icon="mdi:magnify" class="text-gray-400 absolute left-3 top-3 text-xl"></iconify-icon>
+                    </div>
+                    
+                    <!-- 组织架构 -->
+                    <div class="space-y-2">
+                        <div class="bg-white rounded-xl overflow-hidden">
+                            <div class="flex items-center justify-between p-4 border-b border-gray-100 cursor-pointer" onclick="toggleDepartment('dept1')">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:chevron-right" class="text-gray-400 mr-2" id="dept1-icon"></iconify-icon>
+                                    <span class="font-medium text-gray-800">产品技术部</span>
+                                </div>
+                                <span class="text-xs text-gray-500">15人</span>
+                            </div>
+                            <div class="hidden" id="dept1-content">
+                                <div class="p-4 space-y-3">
+                                    <div class="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer" onclick="showPage('contact-profile')">
+                                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                            <iconify-icon icon="mdi:account" class="text-blue-500 text-sm"></iconify-icon>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-800 text-sm">张三</h4>
+                                            <p class="text-xs text-gray-500">产品经理</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                        <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                            <iconify-icon icon="mdi:account" class="text-green-500 text-sm"></iconify-icon>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-800 text-sm">李四</h4>
+                                            <p class="text-xs text-gray-500">前端工程师</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl overflow-hidden">
+                            <div class="flex items-center justify-between p-4 border-b border-gray-100 cursor-pointer" onclick="toggleDepartment('dept2')">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:chevron-right" class="text-gray-400 mr-2" id="dept2-icon"></iconify-icon>
+                                    <span class="font-medium text-gray-800">市场部</span>
+                                </div>
+                                <span class="text-xs text-gray-500">8人</span>
+                            </div>
+                            <div class="hidden" id="dept2-content">
+                                <div class="p-4 space-y-3">
+                                    <div class="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                        <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                            <iconify-icon icon="mdi:account" class="text-purple-500 text-sm"></iconify-icon>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-800 text-sm">王五</h4>
+                                            <p class="text-xs text-gray-500">市场经理</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 页面4: 我的页面 -->
+            <div class="page" id="profile-page">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <h1 class="text-xl font-bold text-gray-800">我的</h1>
+                    <button class="p-2">
+                        <iconify-icon icon="mdi:cog" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 个人信息卡片 -->
+                    <div class="bg-white rounded-xl p-6 mb-4">
+                        <div class="flex items-center">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mr-4">
+                                <span class="text-white text-xl font-bold">JD</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800 text-lg">张三</h3>
+                                <p class="text-sm text-gray-600">产品经理 · 产品技术部</p>
+                                <p class="text-xs text-gray-500">Employee ID: 2025001</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 功能菜单 -->
+                    <div class="space-y-2">
+                        <div class="bg-white rounded-xl overflow-hidden">
+                            <div class="flex items-center justify-between p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onclick="showPage('personal-info')">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:account-edit" class="text-blue-500 text-xl mr-3"></iconify-icon>
+                                    <span class="text-gray-700">个人资料</span>
+                                </div>
+                                <iconify-icon icon="mdi:chevron-right" class="text-gray-400"></iconify-icon>
+                            </div>
+                 
+                            <div class="flex items-center justify-between p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onclick="showPage('language-settings')">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:translate" class="text-purple-500 text-xl mr-3"></iconify-icon>
+                                    <span class="text-gray-700">Multilingual settings</span>
+                                </div>
+                                <iconify-icon icon="mdi:chevron-right" class="text-gray-400"></iconify-icon>
+                            </div>
+
+                        </div>
+                        
+                        <div class="bg-white rounded-xl overflow-hidden">
+                            <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:logout" class="text-red-500 text-xl mr-3"></iconify-icon>
+                                    <span class="text-red-600">退出登录</span>
+                                </div>
+                                <iconify-icon icon="mdi:chevron-right" class="text-gray-400"></iconify-icon>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 消息对话框页面 -->
+            <div class="page" id="chat-detail">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('messages-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <div>
+                            <h1 class="text-lg font-bold text-gray-800">产品部群聊</h1>
+                            <p class="text-xs text-gray-500">8人在线</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                    </div>
+                </div>
+                
+                <!-- 聊天内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <div class="space-y-4">
+                        <!-- 消息气泡 -->
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                <iconify-icon icon="mdi:account" class="text-blue-500 text-sm"></iconify-icon>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center mb-1">
+                                    <span class="text-sm font-medium text-gray-800 mr-2">Li Hua</span>
+                                    <span class="text-xs text-gray-500">10:25</span>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 max-w-xs">
+                                    <p class="text-sm text-gray-800">我们需要加快开发进度，项目时间很紧张</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start justify-end">
+                            <div class="flex-1 flex justify-end">
+                                <div class="max-w-xs">
+                                    <div class="flex items-center justify-end mb-1">
+                                        <span class="text-xs text-gray-500 mr-2">10:26</span>
+                                        <span class="text-sm font-medium text-gray-800">我</span>
+                                    </div>
+                                    <div class="bg-blue-500 text-white rounded-lg p-3">
+                                        <p class="text-sm">好的，我今天会完成界面设计</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center ml-3">
+                                <span class="text-green-500 text-sm font-bold">我</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                <iconify-icon icon="mdi:account" class="text-purple-500 text-sm"></iconify-icon>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center mb-1">
+                                    <span class="text-sm font-medium text-gray-800 mr-2">王五</span>
+                                    <span class="text-xs text-gray-500">10:28</span>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 max-w-xs">
+                                    <p class="text-sm text-gray-800">后端接口已经准备好了，可以开始联调</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 输入框 -->
+                <div class="h-16 bg-white border-t border-gray-200 flex items-center px-3 gap-2">
+                    <div class="flex items-center gap-2">
+                        <button class="p-2" onclick="toggleEmojiPicker(event, 'chat-input-1')" title="表情">
+                            <iconify-icon icon="mdi:emoticon-outline" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <button class="p-2" onclick="document.getElementById('file-input-1').click()" title="附件">
+                            <iconify-icon icon="mdi:paperclip" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <input id="file-input-1" type="file" class="hidden" onchange="handleFileSelect(event,'chat-input-1')" />
+                    </div>
+                    <input id="chat-input-1" type="text" placeholder="输入消息..." class="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                    <div class="flex items-center gap-2 ml-3">
+                        <button class="p-2" onclick="toggleSpeechRecognition(this,'chat-input-1')" title="语音转文字">
+                            <iconify-icon icon="mdi:microphone" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <button class="p-2" onclick="sendMessage('chat-input-1')">
+                            <iconify-icon icon="mdi:send" class="text-blue-500 text-xl"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+            </div>
+           <!-- 通讯录个人资料页面 -->
+            <div class="page" id="contact-profile">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('contacts-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">个人资料</h1>
+                    </div>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 个人信息卡片 -->
+                    <div class="bg-white rounded-xl p-6 mb-4 text-center">
+                        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white text-2xl font-bold">张</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-800 text-lg">张三</h3>
+                        <p class="text-sm text-gray-600">产品经理 · 产品技术部</p>
+                        <p class="text-xs text-gray-500 mt-1">工号: 2025001</p>
+                    </div>
+                    
+                    <!-- 详细信息 -->
+                    <div class="bg-white rounded-xl p-4 mb-4">
+                        <h3 class="font-semibold text-gray-800 mb-4">Detailed information</h3>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Mobile phone</span>
+                                <span class="text-gray-800">138****8888</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Email</span>
+                                <span class="text-gray-800">zhangsan@company.com</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Office location</span>
+                                <span class="text-gray-800">Taiwan Headquarters</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Start date</span>
+                                <span class="text-gray-800">2025-01-15</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 按钮 -->
+                    <div class="pt-4">
+                        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-colors" onclick="showPage('personal-chat')">
+                            消息
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+           <!-- 个人聊天页面 -->
+            <div class="page" id="personal-chat">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('contact-profile')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                <span class="text-blue-500 text-sm font-bold">张</span>
+                            </div>
+                            <div>
+                                <h1 class="text-lg font-bold text-gray-800">张三</h1>
+                                <p class="text-xs text-green-500">在线</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                    </div>
+                </div>
+                
+                <!-- 聊天内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <div class="space-y-4">
+                        <!-- 消息气泡 -->
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                <span class="text-blue-500 text-sm font-bold">张</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center mb-1">
+                                    <span class="text-sm font-medium text-gray-800 mr-2">张三</span>
+                                    <span class="text-xs text-gray-500">09:30</span>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 max-w-xs">
+                                    <p class="text-sm text-gray-800">你好，今天有时间讨论项目方案吗？</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start justify-end">
+                            <div class="flex-1 flex justify-end">
+                                <div class="max-w-xs">
+                                    <div class="flex items-center justify-end mb-1">
+                                        <span class="text-xs text-gray-500 mr-2">09:32</span>
+                                        <span class="text-sm font-medium text-gray-800">我</span>
+                                    </div>
+                                    <div class="bg-blue-500 text-white rounded-lg p-3">
+                                        <p class="text-sm">有的，上午10点可以吗？</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center ml-3">
+                                <span class="text-green-500 text-sm font-bold">我</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 输入框 -->
+                <div class="h-16 bg-white border-t border-gray-200 flex items-center px-3 gap-2">
+                    <div class="flex items-center gap-2">
+                        <button class="p-2" onclick="toggleEmojiPicker(event, 'chat-input-2')" title="表情">
+                            <iconify-icon icon="mdi:emoticon-outline" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <button class="p-2" onclick="document.getElementById('file-input-2').click()" title="附件">
+                            <iconify-icon icon="mdi:paperclip" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <input id="file-input-2" type="file" class="hidden" onchange="handleFileSelect(event,'chat-input-2')" />
+                    </div>
+                    <input id="chat-input-2" type="text" placeholder="输入消息..." class="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                    <div class="flex items-center gap-2 ml-3">
+                        <button class="p-2" onclick="toggleSpeechRecognition(this,'chat-input-2')" title="语音转文字">
+                            <iconify-icon icon="mdi:microphone" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <button class="p-2" onclick="sendMessage('chat-input-2')">
+                            <iconify-icon icon="mdi:send" class="text-blue-500 text-xl"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 个人聊天对话框页面 -->
+            <div class="page" id="chat-detail-2">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('messages-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <iconify-icon icon="mdi:account" class="text-green-500 text-sm"></iconify-icon>
+                            </div>
+                            <div>
+                                <h1 class="text-lg font-bold text-gray-800">张经理</h1>
+                                <p class="text-xs text-green-500">在线</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                    </div>
+                </div>
+                
+                <!-- 聊天内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <div class="space-y-4">
+                        <!-- 消息气泡 -->
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <iconify-icon icon="mdi:account" class="text-green-500 text-sm"></iconify-icon>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center mb-1">
+                                    <span class="text-sm font-medium text-gray-800 mr-2">张经理</span>
+                                    <span class="text-xs text-gray-500">昨天 15:30</span>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 max-w-xs">
+                                    <p class="text-sm text-gray-800">会议材料已经发送，请查收</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start justify-end">
+                            <div class="flex-1 flex justify-end">
+                                <div class="max-w-xs">
+                                    <div class="flex items-center justify-end mb-1">
+                                        <span class="text-xs text-gray-500 mr-2">昨天 15:32</span>
+                                        <span class="text-sm font-medium text-gray-800">我</span>
+                                    </div>
+                                    <div class="bg-blue-500 text-white rounded-lg p-3">
+                                        <p class="text-sm">收到，我会仔细查看</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center ml-3">
+                                <span class="text-blue-500 text-sm font-bold">我</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                <iconify-icon icon="mdi:account" class="text-green-500 text-sm"></iconify-icon>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center mb-1">
+                                    <span class="text-sm font-medium text-gray-800 mr-2">张经理</span>
+                                    <span class="text-xs text-gray-500">昨天 15:35</span>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 max-w-xs">
+                                    <p class="text-sm text-gray-800">好的，有问题随时沟通</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 输入框 -->
+                <div class="h-16 bg-white border-t border-gray-200 flex items-center px-3 gap-2">
+                    <div class="flex items-center gap-2">
+                        <button class="p-2" onclick="toggleEmojiPicker(event, 'chat-input-3')" title="表情">
+                            <iconify-icon icon="mdi:emoticon-outline" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <button class="p-2" onclick="document.getElementById('file-input-3').click()" title="附件">
+                            <iconify-icon icon="mdi:paperclip" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <input id="file-input-3" type="file" class="hidden" onchange="handleFileSelect(event,'chat-input-3')" />
+                    </div>
+                    <input id="chat-input-3" type="text" placeholder="输入消息..." class="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                    <div class="flex items-center gap-2 ml-3">
+                        <button class="p-2" onclick="toggleSpeechRecognition(this,'chat-input-3')" title="语音转文字">
+                            <iconify-icon icon="mdi:microphone" class="text-2xl text-gray-600"></iconify-icon>
+                        </button>
+                        <button class="p-2" onclick="sendMessage('chat-input-3')">
+                            <iconify-icon icon="mdi:send" class="text-blue-500 text-xl"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 发起群聊页面（带复选框）- 修复版 -->
+            <div class="page" id="new-chat">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('messages-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">发起群聊</h1>
+                    </div>
+                    <button id="cancel-selection-btn" class="text-blue-500 font-medium hidden" onclick="cancelSelection()">
+                        Deselect
+                    </button>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50 pb-24">
+                    <!-- 搜索框 -->
+                    <div class="relative mb-4">
+                        <input type="text" placeholder="搜索联系人" class="w-full bg-gray-100 rounded-xl pl-10 pr-4 py-3 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-300" oninput="searchContacts()"/>
+                        <iconify-icon icon="mdi:magnify" class="text-gray-400 absolute left-3 top-3 text-xl"></iconify-icon>
+                    </div>
+                    
+                    <!-- 联系人列表 -->
+                    <div class="space-y-2 contact-list">
+                        <!-- 联系人1：张经理 -->
+                        <div class="bg-white rounded-xl p-4 flex items-center cursor-pointer hover:bg-gray-50 transition-colors group contact-item">
+                            <div class="flex items-center mr-3">
+                                <!-- 复选框 -->
+                                <input type="checkbox" 
+                                       class="contact-checkbox w-5 h-5 text-blue-500 rounded border-gray-300 focus:ring-blue-400 focus:ring-2 focus:ring-offset-0 cursor-pointer transition-all duration-200 group-hover:border-blue-400"
+                                       id="contact-1"
+                                       data-name="张经理"
+                                       data-title="产品部主管">
+                            </div>
+                            
+                            <div class="flex items-center flex-1" onclick="toggleContact(this)">
+                                <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <iconify-icon icon="mdi:account" class="text-green-500 text-2xl"></iconify-icon>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-800 contact-name">张经理</h3>
+                                    <p class="text-sm text-gray-500 contact-title">产品部主管</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 联系人2：陈总 -->
+                        <div class="bg-white rounded-xl p-4 flex items-center cursor-pointer hover:bg-gray-50 transition-colors group contact-item">
+                            <div class="flex items-center mr-3">
+                                <!-- 复选框 -->
+                                <input type="checkbox" 
+                                       class="contact-checkbox w-5 h-5 text-blue-500 rounded border-gray-300 focus:ring-blue-400 focus:ring-2 focus:ring-offset-0 cursor-pointer transition-all duration-200 group-hover:border-blue-400"
+                                       id="contact-2"
+                                       data-name="陈总"
+                                       data-title="总经理">
+                            </div>
+                            
+                            <div class="flex items-center flex-1" onclick="toggleContact(this)">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                    <iconify-icon icon="mdi:account-group" class="text-blue-500 text-2xl"></iconify-icon>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-800 contact-name">陈总</h3>
+                                    <p class="text-sm text-gray-500 contact-title">General Manager</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 联系人3：李四 -->
+                        <div class="bg-white rounded-xl p-4 flex items-center cursor-pointer hover:bg-gray-50 transition-colors group contact-item">
+                            <div class="flex items-center mr-3">
+                                <!-- 复选框 -->
+                                <input type="checkbox" 
+                                       class="contact-checkbox w-5 h-5 text-blue-500 rounded border-gray-300 focus:ring-blue-400 focus:ring-2 focus:ring-offset-0 cursor-pointer transition-all duration-200 group-hover:border-blue-400"
+                                       id="contact-3"
+                                       data-name="李四"
+                                       data-title="前端工程师">
+                            </div>
+                            
+                            <div class="flex items-center flex-1" onclick="toggleContact(this)">
+                                <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                    <iconify-icon icon="mdi:account" class="text-purple-500 text-2xl"></iconify-icon>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-800 contact-name">李四</h3>
+                                    <p class="text-sm text-gray-500 contact-title">前端工程师</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 联系人4：王五 -->
+                        <div class="bg-white rounded-xl p-4 flex items-center cursor-pointer hover:bg-gray-50 transition-colors group contact-item">
+                            <div class="flex items-center mr-3">
+                                <!-- 复选框 -->
+                                <input type="checkbox" 
+                                       class="contact-checkbox w-5 h-5 text-blue-500 rounded border-gray-300 focus:ring-blue-400 focus:ring-2 focus:ring-offset-0 cursor-pointer transition-all duration-200 group-hover:border-blue-400"
+                                       id="contact-4"
+                                       data-name="王五"
+                                       data-title="市场经理">
+                            </div>
+                            
+                            <div class="flex items-center flex-1" onclick="toggleContact(this)">
+                                <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mr-3">
+                                    <iconify-icon icon="mdi:account" class="text-amber-500 text-2xl"></iconify-icon>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-800 contact-name">王五</h3>
+                                    <p class="text-sm text-gray-500 contact-title">市场经理</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 底部操作栏（选人后显示） - 固定在页面底部导航栏上方 -->
+                <div id="selection-bar" class="absolute bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-3 hidden transform transition-transform duration-300 -translate-y-full shadow-lg z-20 mx-4 rounded-t-xl">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1 min-w-0 mr-3">
+                            <div class="flex items-center mb-1">
+                                <span class="text-gray-600 text-sm whitespace-nowrap">
+                                    Selected <span id="selected-count" class="font-bold text-blue-500">0</span> people
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-500 truncate" id="selected-names"></p>
+                        </div>
+                        <button class="bg-blue-500 text-white px-4 py-2.5 rounded-xl hover:bg-blue-600 transition-colors font-medium text-sm whitespace-nowrap"
+                                onclick="startGroupChat()">
+                            发起群聊
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 其他页面保持不变... -->
+            <!-- 费用申请表单页面 -->
+            <div class="page" id="expense-application">
+                <!-- 标题栏 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('approval-menu')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">费用申请</h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:help-circle" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar p-4 bg-gray-50">
+                    <form class="space-y-4">
+                        <!-- Subject -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">主题</label>
+                            <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="费用用途"/>
+                        </div>
+
+                        <!-- Purpose -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">事由</label>
+                            <textarea class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all h-24" placeholder="详细说明"></textarea>
+                        </div>
+
+                        <!-- Amount -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">金额</label>
+                            <input type="number" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="0.00"/>
+                        </div>
+
+                        <!-- Currency -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">币种</label>
+                            <select class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                                <option>USD - 美元</option>
+                                <option>CNY - 人民币</option>
+                                <option>EUR - 欧元</option>
+                                <option>JPY - 日元</option>
+                            </select>
+                        </div>
+
+                        <!-- Priority -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">优先级</label>
+                            <div class="flex space-x-3">
+                                <label class="flex items-center">
+                                    <input type="radio" name="priority" class="text-blue-500 focus:ring-blue-500" checked=""/>
+                                    <span class="ml-2 text-gray-700">普通</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="priority" class="text-amber-500 focus:ring-amber-500"/>
+                                    <span class="ml-2 text-gray-700">紧急</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="priority" class="text-red-500 focus:ring-red-500"/>
+                                    <span class="ml-2 text-gray-700">特急</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Reviewer -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">审批人</label>
+                            <select class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                                <option>张伟 (财务经理)</option>
+                                <option>李明 (部门主管)</option>
+                                <option>王芳 (人事总监)</option>
+                            </select>
+                        </div>
+
+                        <!-- Due Date -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">截止日期</label>
+                            <input type="date" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"/>
+                        </div>
+
+                        <!-- Upload Excel -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">上传Excel文件</label>
+                            <div class="flex items-center justify-center w-full">
+                                <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <iconify-icon icon="mdi:file-excel" class="text-green-500 text-3xl mb-2"></iconify-icon>
+                                        <p class="text-sm text-gray-500">点击上传或拖拽文件</p>
+                                        <p class="text-xs text-gray-500">支持XLSX, CSV格式</p>
+                                    </div>
+                                    <input type="file" class="hidden" accept=".xlsx,.csv"/>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 按钮区域 -->
+                        <div class="flex justify-between pt-4">
+                            <button type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium w-[48%] transition-colors" onclick="showPage('approval-menu')">取消</button>
+                            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium w-[48%] transition-colors">提交</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 费用历史查询页面 -->
+            <div class="page" id="expense-history">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('workplace-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">费用历史</h1>
+                    </div>
+                    <div>
+                        <button class="p-2" onclick="document.getElementById('expense-filter-toggle')?.classList.toggle('hidden')">
+                            <iconify-icon icon="mdi:filter-variant" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 筛选区域（可收起） -->
+                    <div id="expense-filter-toggle" class="bg-white rounded-xl p-4 mb-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm text-gray-600 mb-1">开始日期</label>
+                                <input type="date" id="expense-start" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2" />
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-600 mb-1">结束日期</label>
+                                <input type="date" id="expense-end" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2" />
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-600 mb-1">状态</label>
+                                <select id="expense-status" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                    <option value="all">全部</option>
+                                    <option value="approved">已报销</option>
+                                    <option value="pending">待审批</option>
+                                    <option value="rejected">已驳回</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-600 mb-1">关键字</label>
+                                <input type="text" id="expense-keyword" placeholder="报销人/用途/单号" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2" />
+                            </div>
+                        </div>
+                        <div class="mt-3 flex items-center gap-2">
+                            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg" onclick="renderExpenseHistory()">查询</button>
+                            <button class="bg-gray-100 px-4 py-2 rounded-lg" onclick="resetExpenseFilters()">重置</button>
+                        </div>
+                    </div>
+
+                    <!-- 结果列表 -->
+                    <div id="expense-history-list" class="space-y-3">
+                        <div class="text-center text-gray-500">请设置筛选条件并点击“查询”查看费用记录。</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 请假申请表单页面 -->
+            <div class="page" id="leave-application">
+                <!-- 标题栏 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('approval-menu')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">请假申请</h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:calendar-question" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar p-4 bg-gray-50">
+                    <form class="space-y-4">
+                        <!-- 剩余假期 -->
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-sm text-gray-600">剩余假期天数</p>
+                                    <p class="text-2xl font-bold text-green-500 mt-1">15 天</p>
+                                </div>
+                                <iconify-icon icon="mdi:beach" class="text-green-500 text-3xl"></iconify-icon>
+                            </div>
+                        </div>
+
+                        <!-- 开始日期 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
+                            <input type="date" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"/>
+                        </div>
+
+                        <!-- 结束日期 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
+                            <input type="date" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"/>
+                        </div>
+
+                        <!-- 请假天数 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">请假天数</label>
+                            <div class="flex items-center">
+                                <input type="number" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" value="3" min="0.5" step="0.5"/>
+                                <span class="ml-2 text-gray-500">天</span>
+                            </div>
+                        </div>
+
+                        <!-- 请假类型 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">请假类型</label>
+                            <select class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                                <option>年假</option>
+                                <option>病假</option>
+                                <option>事假</option>
+                                <option>婚假</option>
+                                <option>产假</option>
+                            </select>
+                        </div>
+
+                        <!-- 请假原因 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">请假原因</label>
+                            <textarea class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all h-32" placeholder="请详细说明请假原因"></textarea>
+                        </div>
+
+                    
+                        <!-- 按钮区域 -->
+                        <div class="flex justify-between pt-4">
+                            <button type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium w-[48%] transition-colors" onclick="showPage('approval-menu')">取消</button>
+                            <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium w-[48%] transition-colors">提交</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 请假历史记录页面 -->
+            <div class="page" id="leave-history">
+                <!-- 标题栏 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('approval-menu')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">请假历史</h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:filter" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar bg-gray-50">
+                    <!-- 筛选区域 -->
+                    <div class="bg-gray-50 p-4 border-b border-gray-100">
+                        <div class="flex space-x-3">
+                            <div class="flex-1">
+                                <label class="block text-xs text-gray-500 mb-1">时间范围</label>
+                                <select class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                                    <option>最近30天</option>
+                                    <option selected="">最近3个月</option>
+                                    <option>最近6个月</option>
+                                    <option>最近一年</option>
+                                </select>
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs text-gray-500 mb-1">状态</label>
+                                <select class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                                    <option>全部状态</option>
+                                    <option>已通过</option>
+                                    <option>待审批</option>
+                                    <option>已驳回</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 历史记录列表 -->
+                    <div class="p-4 space-y-3">
+                        <!-- 记录项 -->
+                        <div class="bg-white border border-gray-100 rounded-lg p-3 cursor-pointer hover:shadow-sm transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">年假</h3>
+                                    <p class="text-sm text-gray-600">2025-11-15 至 2025-11-18</p>
+                                </div>
+                                <div class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">已通过</div>
+                            </div>
+                            <div class="mt-2 flex items-center text-xs text-gray-500">
+                                <span class="mr-3">3 天</span>
+                                <span>张三 · 产品部</span>
+                            </div>
+                            <div class="mt-2 flex justify-between items-center">
+                                <span class="text-xs text-gray-400">审批人: 张伟</span>
+                                <button class="text-blue-500 text-sm font-medium">查看详情</button>
+                            </div>
+                        </div>
+
+                        <!-- 记录项 -->
+                        <div class="bg-white border border-gray-100 rounded-lg p-3 cursor-pointer hover:shadow-sm transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">病假</h3>
+                                    <p class="text-sm text-gray-600">2025-10-20 至 2025-10-21</p>
+                                </div>
+                                <div class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">待审批</div>
+                            </div>
+                            <div class="mt-2 flex items-center text-xs text-gray-500">
+                                <span class="mr-3">1.5 天</span>
+                                <span>李四 · 市场部</span>
+                            </div>
+                            <div class="mt-2 flex justify-between items-center">
+                                <span class="text-xs text-gray-400">审批人: 李明</span>
+                                <button class="text-blue-500 text-sm font-medium">查看详情</button>
+                            </div>
+                        </div>
+
+                        <!-- 记录项 -->
+                        <div class="bg-white border border-gray-100 rounded-lg p-3 cursor-pointer hover:shadow-sm transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">事假</h3>
+                                    <p class="text-sm text-gray-600">2025-09-05</p>
+                                </div>
+                                <div class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">已驳回</div>
+                            </div>
+                            <div class="mt-2 flex items-center text-xs text-gray-500">
+                                <span class="mr-3">1 天</span>
+                                <span>王芳 · 人事部</span>
+                            </div>
+                            <div class="mt-2 flex justify-between items-center">
+                                <span class="text-xs text-gray-400">审批人: 刘红</span>
+                                <button class="text-blue-500 text-sm font-medium">查看详情</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 审批子页面 -->
+            <div class="page" id="approval-detail">
+                <!-- 标题栏 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('approval-menu')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">审批详情</h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:share-variant" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar p-4 bg-gray-50">
+                    <!-- 申请人信息 -->
+                    <div class="bg-blue-50 rounded-xl p-4 mb-4">
+                        <div class="flex items-center mb-3">
+                            <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                                <iconify-icon icon="mdi:account" class="text-indigo-500 text-2xl"></iconify-icon>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">Jennifer Pang</h3>
+                                <p class="text-sm text-gray-600">产品部 · 产品经理</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <p class="text-xs text-gray-500">币种</p>
+                                <p class="font-medium">美元</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">申请时间</p>
+                                <p class="font-medium">2025-12-04 14:30</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">金额</p>
+                                <p class="font-medium">¥8,650.00</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">优先级</p>
+                                <div class="bg-amber-500 text-white px-2 py-1 rounded-full text-xs inline-block">高</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 费用明细 -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+                        <h3 class="font-semibold text-gray-800 mb-3">申请主题</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="font-medium">差旅费报销</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600"><b>事由</b></span>
+                                <span class="font-medium">上海客户会议</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600"><b>截止日期</b></span>
+                                <span class="font-medium">2025-12-08</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 附件清单 -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+                        <h3 class="font-semibold text-gray-800 mb-3">附件列表</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center p-2 border border-gray-100 rounded-lg">
+                                <iconify-icon icon="mdi:file-document" class="text-blue-500 text-2xl mr-3"></iconify-icon>
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-800 truncate">机票行程单.pdf</p>
+                                    <p class="text-xs text-gray-500">1.2MB · 2025-12-01</p>
+                                </div>
+                                <button class="ml-2">
+                                    <iconify-icon icon="mdi:download" class="text-gray-500"></iconify-icon>
+                                </button>
+                            </div>
+                            <div class="flex items-center p-2 border border-gray-100 rounded-lg">
+                                <iconify-icon icon="mdi:image" class="text-green-500 text-2xl mr-3"></iconify-icon>
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-800 truncate">酒店发票.jpg</p>
+                                    <p class="text-xs text-gray-500">0.8MB · 2025-12-03</p>
+                                </div>
+                                <button class="ml-2">
+                                    <iconify-icon icon="mdi:download" class="text-gray-500"></iconify-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 审批流程 -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+                        <h3 class="font-semibold text-gray-800 mb-3">审批流程</h3>
+                        <div class="space-y-4 relative pl-8 py-2">
+                            <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+                            <div class="relative">
+                                <div class="absolute -left-8 top-1 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <iconify-icon icon="mdi:check" class="text-white text-sm"></iconify-icon>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">申请已提交</h4>
+                                    <p class="text-xs text-gray-500">申请人: Jennifer Pang · 2025-12-04 14:30</p>
+                                </div>
+                            </div>
+
+                            <div class="relative">
+                                <div class="absolute -left-8 top-1 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <iconify-icon icon="mdi:check" class="text-white text-sm"></iconify-icon>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">部门负责人审批</h4>
+                                    <p class="text-xs text-gray-500">审批人: 王总监 · 2025-12-04 15:42</p>
+                                    <p class="text-xs text-green-500 mt-1">已通过</p>
+                                </div>
+                            </div>
+
+                            <div class="relative">
+                                <div class="absolute -left-8 top-1 w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
+                                    <iconify-icon icon="mdi:clock" class="text-white text-xs"></iconify-icon>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">财务审核</h4>
+                                    <p class="text-xs text-gray-500">等待处理</p>
+                                </div>
+                            </div>
+
+                            <div class="relative">
+                                <div class="absolute -left-8 top-1 w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center"></div>
+                                <div>
+                                    <h4 class="font-medium">归档完成</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="flex justify-between mt-6">
+                        <button class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-full font-medium w-[45%] transition-colors">驳回</button>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full font-medium w-[45%] transition-colors">通过</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 项目管理子页面 -->
+            <div class="page" id="project-page">
+                <!-- 标题栏 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('project-list-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">市场推广项目</h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:dots-vertical" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar p-4 bg-gray-50">
+                    <!-- 项目概览 -->
+                    <div class="bg-green-50 rounded-xl p-4 mb-4">
+                        <div class="flex justify-between mb-3">
+                            <div>
+                                <h3 class="font-semibold text-gray-800 mb-1">项目进度</h3>
+                                <div class="w-48 h-2 bg-gray-200 rounded-full">
+                                    <div class="h-full bg-green-500 rounded-full" style="width: 65%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">已完成65% · 剩余7天</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-600">项目经理</p>
+                                <p class="font-medium">Jennifer</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mt-4">
+                            <div class="bg-white p-2 rounded-lg">
+                                <p class="text-xs text-gray-500">开始日期</p>
+                                <p class="font-medium">2025-11-15</p>
+                            </div>
+                            <div class="bg-white p-2 rounded-lg">
+                                <p class="text-xs text-gray-500">结束日期</p>
+                                <p class="font-medium">2025-12-15</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 任务看板 -->
+                    <!-- 项目描述与团队成员 -->
+                    <div class="bg-white rounded-xl p-4 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">项目描述</h3>
+                        <p class="text-sm text-gray-600 mb-4">市场推广项目旨在提升新产品的品牌曝光与用户转化，通过线上社媒投放、KOL 合作与线下活动三条主线协同推进。当前阶段以用户获取与内容种草为主，目标在下季度提升 MAU 20%。</p>
+
+                        <h3 class="font-semibold text-gray-800 mb-3">团队成员</h3>
+                        <div class="flex items-center space-x-3">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                    <span class="text-blue-500 text-sm font-bold">J</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">Jennifer Pang</div>
+                                    <div class="text-xs text-gray-500">项目经理</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <span class="text-green-500 text-sm font-bold">L</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">Li Hua</div>
+                                    <div class="text-xs text-gray-500">市场策划</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                    <span class="text-purple-500 text-sm font-bold">D</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">David Chen</div>
+                                    <div class="text-xs text-gray-500">数据分析</div>
+                                </div>
+                            </div>
+                            <button class="ml-auto text-sm text-blue-500" onclick="showPage('project-team')">查看全部成员</button>
+                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-semibold text-gray-800">负责人</h3>
+                            <span class="text-sm text-blue-500">创建新任务</span>
+                        </div>
+                        <div class="flex space-x-4 overflow-x-auto pb-2">
+                            <div class="w-64 flex-shrink-0">
+                                <div class="bg-gray-100 px-3 py-2 rounded-t-lg">
+                                    <h4 class="font-medium text-gray-700">待办 (2)</h4>
+                                </div>
+                                <div class="bg-white border border-t-0 rounded-b-lg p-3 space-y-3">
+                                    <div class="p-2 bg-white border rounded-lg">
+                                        <div class="flex justify-between items-start">
+                                            <h4 class="font-medium text-gray-800">JO019</h4>
+                                            <div class="flex">
+                                                <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded">高</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">密码修改选项...</p>
+                                    </div>
+                                    <div class="p-2 bg-white border rounded-lg">
+                                        <h4 class="font-medium text-gray-800">JO018</h4>
+                                        <p class="text-xs text-gray-500 mt-1">获取所有分配和创建...</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-64 flex-shrink-0">
+                                <div class="bg-blue-100 px-3 py-2 rounded-t-lg">
+                                    <h4 class="font-medium text-gray-700">进行中 (3)</h4>
+                                </div>
+                                <div class="bg-white border border-t-0 rounded-b-lg p-3 space-y-3">
+                                    <div class="p-2 bg-white border rounded-lg">
+                                        <div class="flex justify-between items-start">
+                                            <h4 class="font-medium text-gray-800">4715003</h4>
+                                            <div class="flex">
+                                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">中</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">权限变更历史...</p>
+                                    </div>
+                                    <div class="p-2 bg-white border rounded-lg">
+                                        <h4 class="font-medium text-gray-800">JO017</h4>
+                                        <p class="text-xs text-gray-500 mt-1">修改个人信息</p>
+                                        <div class="w-full h-1 bg-gray-200 rounded-full mt-1">
+                                            <div class="h-full bg-blue-500 rounded-full" style="width: 45%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-64 flex-shrink-0">
+                                <div class="bg-green-100 px-3 py-2 rounded-t-lg">
+                                    <h4 class="font-medium text-gray-700">已完成 (4)</h4>
+                                </div>
+                                <div class="bg-white border border-t-0 rounded-b-lg p-3 space-y-3">
+                                    <div class="p-2 bg-white border rounded-lg">
+                                        <h4 class="font-medium text-gray-800">4715002</h4>
+                                        <p class="text-xs text-gray-500 mt-1">添加班次更新广告...</p>
+                                    </div>
+                                    <div class="p-2 bg-white border rounded-lg">
+                                        <h4 class="font-medium text-gray-800">4715003</h4>
+                                        <p class="text-xs text-gray-500 mt-1">添加班次更新广告...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 公司政策子页面 -->
+            <div class="page" id="policy-page">
+                <!-- 标题栏 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="goBack()">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">公司政策</h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:magnify" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar p-4 bg-gray-50">
+                    <!-- 政策分类 -->
+                    <div class="flex space-x-3 overflow-x-auto pb-4 hide-scrollbar">
+                        <button class="bg-purple-500 text-white px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">全部政策</button>
+                        <button class="bg-white border border-purple-300 text-purple-500 px-4 py-2 rounded-full text-sm whitespace-nowrap">通用</button>
+                        <button class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm whitespace-nowrap">财务</button>
+                        <button class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm whitespace-nowrap">公司政策</button>
+                        <button class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm whitespace-nowrap">IT规范</button>
+                    </div>
+
+                    <!-- 政策列表 -->
+                    <div class="space-y-4 mt-4">
+                        <div class="bg-white border border-gray-100 rounded-xl p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <h3 class="font-semibold text-gray-800">信息安全政策</h3>
+                                        <span class="bg-amber-100 text-amber-800 text-xs px-1.5 py-0.5 rounded ml-2">重要</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">日期：2025-10-15</p>
+                                </div>
+                                <iconify-icon icon="mdi:file-document" class="text-purple-500 text-2xl"></iconify-icon>
+                            </div>
+                            <div class="mt-3">
+                                <p class="text-xs text-gray-500">关于数据安全、系统权限和保密协议的详细规定...</p>
+                            </div>
+                            <div class="flex justify-between mt-4">
+                                <span class="text-xs text-gray-400"></span>
+                                <button class="text-purple-500 text-sm font-medium">查看详情</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white border border-gray-100 rounded-xl p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">差旅费报销政策</h3>
+                                    <p class="text-sm text-gray-600 mt-1">日期：2025-10-15</p>
+                                </div>
+                                <iconify-icon icon="mdi:file-document" class="text-purple-500 text-2xl"></iconify-icon>
+                            </div>
+                            <div class="mt-3">
+                                <p class="text-xs text-gray-500">国内外住宿、交通、餐饮的报销指南...</p>
+                            </div>
+                            <div class="flex justify-between mt-4">
+                                <span class="text-xs text-gray-400"></span>
+                                <button class="text-purple-500 text-sm font-medium">查看详情</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white border border-gray-100 rounded-xl p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <h3 class="font-semibold text-gray-800">差旅费报销政策</h3>
+
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">日期：2025-10-15</p>
+                                </div>
+                                <iconify-icon icon="mdi:file-document" class="text-purple-500 text-2xl"></iconify-icon>
+                            </div>
+                            <div class="mt-3">
+                                <p class="text-xs text-gray-500">国内外住宿、交通、餐饮的报销指南...</p>
+                            </div>
+                            <div class="flex justify-between mt-4">
+                                <span class="text-xs text-gray-400"></span>
+                                <button class="text-purple-500 text-sm font-medium">查看详情</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 数据报告子页面 -->
+            <div class="page" id="report-page">
+                <!-- 标题栏 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="goBack()">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">Time Summary </h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:export-variant" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar p-4 bg-gray-50">
+                    <!-- 时间筛选 -->
+                    <div class="bg-gray-50 rounded-lg p-3 mb-4">
+                        <div class="flex justify-between">
+                            <div>
+                                <p class="text-xs text-gray-500">时间范围</p>
+                                <div class="flex items-center">
+                                    <span class="font-medium">2025年11月</span>
+                                    <iconify-icon icon="mdi:chevron-down" class="text-gray-500 ml-1"></iconify-icon>
+                                </div>
+                            </div>
+                            <button class="bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-sm">
+                                筛选
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 数据概览 -->
+
+
+                    <!-- 数据图表 -->
+
+                    <!-- 区域销售排行 -->
+
+                </div>
+            </div>
+                        <!-- 审批二级菜单页面 -->
+            <div class="page" id="approval-menu">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="goBack()">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">审批中心</h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:bell" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 功能网格 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- 费用审批入口 -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 text-center cursor-pointer hover:shadow-md transition-shadow" onclick="showPage('expense-application')">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <iconify-icon icon="mdi:currency-usd" class="text-blue-500 text-3xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-1">申请费用</h3>
+                            <p class="text-xs text-gray-500"></p>
+                        </div>
+
+                        <!-- 请假审批入口 -->
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 text-center cursor-pointer hover:shadow-md transition-shadow" onclick="showPage('leave-application')">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <iconify-icon icon="mdi:beach" class="text-green-500 text-3xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-1">申请请假</h3>
+                            <p class="text-xs text-gray-500"></p>
+                        </div>
+                                                    <!-- 费用历史列表 -->
+                                                <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 text-center cursor-pointer hover:shadow-md transition-shadow" onclick="showPage('expense-history')">
+                            <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <iconify-icon icon="mdi:clipboard-list" class="text-amber-500 text-3xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-1">费用历史</h3>
+                            <p class="text-xs text-gray-500"></p>
+                        </div>
+
+                        <!-- 历史记录入口 -->
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 text-center cursor-pointer hover:shadow-md transition-shadow" onclick="showPage('leave-history')">
+                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <iconify-icon icon="mdi:history" class="text-purple-500 text-3xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-1">请假历史</h3>
+                            <p class="text-xs text-gray-500"></p>
+                        </div>
+
+ 
+                    </div>
+
+                    <!-- 待办事项 -->
+                    <div class="mt-8">
+                        <h3 class="font-semibold text-gray-800 mb-3">待审批申请</h3>
+                        <div class="space-y-3">
+                            <div class="bg-white border border-gray-100 rounded-lg p-3 flex items-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="showPage('approval-detail')">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                    <iconify-icon icon="mdi:currency-usd" class="text-blue-500 text-xl"></iconify-icon>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-800">差旅费报销</h4>
+                                    <p class="text-xs text-gray-500">Jennifer Pang · 今天 14:30</p>
+                                </div>
+                                <div class="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">高</div>
+                            </div>
+
+                            <div class="bg-white border border-gray-100 rounded-lg p-3 flex items-center cursor-pointer hover:bg-gray-50 transition-colors">
+                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                    <iconify-icon icon="mdi:beach" class="text-green-500 text-xl"></iconify-icon>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-800">年假申请</h4>
+                                    <p class="text-xs text-gray-500">David Chen · 今天 10:15</p>
+                                </div>
+                                <div class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">中</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 项目管理列表页面 -->
+            <div class="page" id="project-list-page">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="goBack()">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">项目管理</h1>
+                    </div>
+                    <button onclick="openCreateModal()">
+                        <iconify-icon icon="mdi:plus" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+                
+                <!-- 标签页 -->
+                    <div class="h-12 flex items-center border-b border-gray-100 bg-white">
+                    <button class="flex-1 h-full text-center text-blue-500 border-b-2 border-blue-500 font-medium" onclick="clickEffect(this); switchTab('projects')">
+                        项目列表
+                    </button>
+                    <button class="flex-1 h-full text-center text-gray-500" onclick="clickEffect(this); switchTab('tasks')">
+                        任务列表
+                    </button>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 项目列表 -->
+                    <div id="projects-tab" class="tab-content active">
+                        <div class="space-y-3">
+                            <div class="bg-white rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow" onclick="showPage('project-page')">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-semibold text-gray-800">市场推广项目</h3>
+                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">进行中</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">负责公司新产品的市场推广活动策划和执行</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <iconify-icon icon="mdi:account" class="text-gray-400 text-sm mr-1"></iconify-icon>
+                                        <span class="text-xs text-gray-500">Jennifer</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">进度: 65%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow" onclick="clickEffect(this)">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-semibold text-gray-800">系统升级项目</h3>
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">已完成</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">公司内部管理系统的全面升级和优化</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <iconify-icon icon="mdi:account" class="text-gray-400 text-sm mr-1"></iconify-icon>
+                                        <span class="text-xs text-gray-500">张三</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">进度: 100%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow" onclick="clickEffect(this)">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-semibold text-gray-800">产品迭代计划</h3>
+                                    <span class="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">规划中</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">下一季度产品功能迭代和优化计划</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <iconify-icon icon="mdi:account" class="text-gray-400 text-sm mr-1"></iconify-icon>
+                                        <span class="text-xs text-gray-500">李四</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">进度: 15%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 任务列表 -->
+                    <div id="tasks-tab" class="tab-content">
+                        <div class="space-y-3">
+                            <div class="bg-white rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow" onclick="clickEffect(this)">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-semibold text-gray-800">完成项目方案评审</h3>
+                                    <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">高优先级</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">需要完成项目方案的详细评审和讨论</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <iconify-icon icon="mdi:calendar" class="text-gray-400 text-sm mr-1"></iconify-icon>
+                                        <span class="text-xs text-gray-500">今天 18:00</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">进度: 30%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-semibold text-gray-800">整理会议纪要</h3>
+                                    <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">中优先级</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">整理昨天的项目讨论会议纪要</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <iconify-icon icon="mdi:calendar" class="text-gray-400 text-sm mr-1"></iconify-icon>
+                                        <span class="text-xs text-gray-500">今天 17:00</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">进度: 60%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-semibold text-gray-800">更新项目文档</h3>
+                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">低优先级</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">更新项目相关的技术文档和用户手册</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <iconify-icon icon="mdi:calendar" class="text-gray-400 text-sm mr-1"></iconify-icon>
+                                        <span class="text-xs text-gray-500">明天 12:00</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">进度: 10%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            
+                
+            <!-- 个人资料页面 -->
+            <div class="page" id="personal-info">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('profile-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">个人资料</h1>
+                    </div>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 头像区域 -->
+                    <div class="bg-white rounded-xl p-6 mb-4 text-center">
+                        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white text-2xl font-bold">JD</span>
+                        </div>
+                        <button class="text-blue-500 text-sm">更换头像</button>
+                    </div>
+
+                    <!-- 表单区域 -->
+                    <form class="space-y-4">
+                        <div class="bg-white rounded-xl p-4">
+                            <h3 class="font-semibold text-gray-800 mb-4">Basic Information</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                    <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" value="张三"/>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">English name</label>
+                                    <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" value="John Doe"/>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
+                                    <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" value="产品经理"/>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                    <select class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                                        <option>产品技术部</option>
+                                        <option>市场部</option>
+                                        <option>销售部</option>
+                                        <option>人事部</option>
+                                        <option>财务部</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Mobile phone</label>
+                                    <input type="tel" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" value="138****8888"/>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <input type="email" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" value="zhangsan@company.com"/>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Office location</label>
+                                    <select class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                                        <option>北京总部</option>
+                                        <option>上海分公司</option>
+                                        <option>深圳分公司</option>
+                                        <option>杭州分公司</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 按钮区域 -->
+                        <div class="flex justify-between pt-4">
+                            <button type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium w-[48%] transition-colors" onclick="showPage('profile-page')">取消</button>
+                            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium w-[48%] transition-colors">保存</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 设置页面 -->
+            <div class="page" id="settings">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('profile-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">设置</h1>
+                    </div>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <div class="space-y-4">
+                        <!-- 通知设置 -->
+                        <div class="bg-white rounded-xl p-4">
+                            <h3 class="font-semibold text-gray-800 mb-4">通知设置</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">消息通知</h4>
+                                        <p class="text-xs text-gray-500">接收聊天和系统消息</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" value="" class="sr-only peer" checked=""/>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">邮件通知</h4>
+                                        <p class="text-xs text-gray-500">接收重要邮件提醒</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" value="" class="sr-only peer"/>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">审批提醒</h4>
+                                        <p class="text-xs text-gray-500">审批状态变更提醒</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" value="" class="sr-only peer" checked=""/>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 隐私设置 -->
+                        <div class="bg-white rounded-xl p-4">
+                            <h3 class="font-semibold text-gray-800 mb-4">隐私设置</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">在线状态</h4>
+                                        <p class="text-xs text-gray-500">显示我的在线状态</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" value="" class="sr-only peer" checked=""/>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">个人信息可见性</h4>
+                                        <p class="text-xs text-gray-500">允许同事查看我的信息</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" value="" class="sr-only peer"/>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 其他设置 -->
+                        <div class="bg-white rounded-xl p-4">
+                            <h3 class="font-semibold text-gray-800 mb-4">其他设置</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center cursor-pointer" onclick="showPage('language-settings')">
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">语言设置</h4>
+                                        <p class="text-xs text-gray-500">选择应用语言</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="text-sm text-gray-600 mr-2" id="current-language">简体中文</span>
+                                        <iconify-icon icon="mdi:chevron-right" class="text-gray-400"></iconify-icon>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">自动更新</h4>
+                                        <p class="text-xs text-gray-500">自动下载和安装更新</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" value="" class="sr-only peer" checked=""/>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">数据同步</h4>
+                                        <p class="text-xs text-gray-500">自动同步数据到云端</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" value="" class="sr-only peer"/>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 按钮区域 -->
+                    <div class="flex justify-between pt-4">
+                        <button type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium w-[48%] transition-colors" onclick="showPage('profile-page')">取消</button>
+                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium w-[48%] transition-colors">保存</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 多语言设置页面 -->
+            <div class="page" id="language-settings">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('profile-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">Multilingual settings</h1>
+                    </div>
+                </div>
+
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <div class="bg-white rounded-xl p-4">
+                        <h3 class="font-semibold text-gray-800 mb-4">选择语言</h3>
+                        
+                        <div class="space-y-3">
+                            <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:earth" class="text-blue-500 text-xl mr-3"></iconify-icon>
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">简体中文</h4>
+                                        <p class="text-xs text-gray-500">Chinese (Simplified)</p>
+                                    </div>
+                                </div>
+                                <input type="radio" name="language" value="zh-CN" class="text-blue-500 focus:ring-blue-500"/>
+                            </label>
+                            
+                            <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:earth" class="text-green-500 text-xl mr-3"></iconify-icon>
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">繁体中文</h4>
+                                        <p class="text-xs text-gray-500">Chinese (Traditional)</p>
+                                    </div>
+                                </div>
+                                <input type="radio" name="language" value="zh-TW" class="text-blue-500 focus:ring-blue-500"/>
+                            </label>
+                            
+                            <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:earth" class="text-red-500 text-xl mr-3"></iconify-icon>
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">English</h4>
+                                        <p class="text-xs text-gray-500">English (US)</p>
+                                    </div>
+                                </div>
+                                <input type="radio" name="language" value="en" class="text-blue-500 focus:ring-blue-500" checked=""/>
+                            </label>
+                            
+                            <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <div class="flex items-center">
+                                    <iconify-icon icon="mdi:earth" class="text-yellow-500 text-xl mr-3"></iconify-icon>
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">Tiếng Việt</h4>
+                                        <p class="text-xs text-gray-500">Vietnamese</p>
+                                    </div>
+                                </div>
+                                <input type="radio" name="language" value="vi" class="text-blue-500 focus:ring-blue-500"/>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                            <div class="flex items-start">
+                                <iconify-icon icon="mdi:information" class="text-blue-500 text-xl mr-2 mt-0.5"></iconify-icon>
+                                <div>
+                                    <h4 class="font-medium text-blue-800 mb-1">提示</h4>
+                                    <p class="text-sm text-blue-700">切换语言后，整个应用界面将显示为所选语言。部分内容的翻译可能需要重新启动应用才能完全生效。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 按钮区域 -->
+                    <div class="flex justify-between pt-4">
+                        <button type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium w-[48%] transition-colors" onclick="showPage('settings')">取消</button>
+                        <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium w-[48%] transition-colors" onclick="saveLanguage()">保存</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 考勤打卡页面 -->
+            <div class="page" id="attendance-page">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="goBack()">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">考勤打卡</h1>
+                    </div>
+                    <button onclick="showPage('attendance-history')">
+                        <iconify-icon icon="mdi:history" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <!-- 打卡状态 -->
+                    <div class="bg-white rounded-xl p-6 mb-4 text-center">
+                        <div class="w-32 h-32 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center mx-auto mb-4">
+                            <div class="text-center">
+                                <iconify-icon icon="mdi:clock" class="text-white text-3xl mb-2"></iconify-icon>
+                                <p class="text-white text-sm font-medium">09:15</p>
+                            </div>
+                        </div>
+                        <h3 class="font-semibold text-gray-800 text-lg mb-2">上班打卡</h3>
+                        <p class="text-sm text-gray-600 mb-4">北京总部 · 产品技术部</p>
+                        <button class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-full font-medium transition-colors">
+                            立即打卡
+                        </button>
+                    </div>
+                    
+                    <!-- 今日考勤 -->
+                    <div class="bg-white rounded-xl p-4 mb-4">
+                        <h3 class="font-semibold text-gray-800 mb-4">今日考勤</h3>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-green-500">09:15</div>
+                                <div class="text-xs text-gray-500">上班打卡</div>
+                                <div class="text-xs text-green-500 mt-1">正常</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-gray-400">--:--</div>
+                                <div class="text-xs text-gray-500">下班打卡</div>
+                                <div class="text-xs text-gray-400 mt-1">未打卡</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 考勤统计 -->
+                    <div class="bg-white rounded-xl p-4">
+                        <h3 class="font-semibold text-gray-800 mb-4">本月统计</h3>
+                        
+                        <div class="grid grid-cols-4 gap-3 text-center">
+                            <div>
+                                <div class="text-lg font-bold text-green-500">22</div>
+                                <div class="text-xs text-gray-500">正常</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-bold text-blue-500">2</div>
+                                <div class="text-xs text-gray-500">迟到</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-bold text-amber-500">1</div>
+                                <div class="text-xs text-gray-500">早退</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-bold text-red-500">0</div>
+                                <div class="text-xs text-gray-500">缺勤</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 打卡历史页面（日历展示） -->
+            <div class="page" id="attendance-history">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('attendance-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">打卡历史</h1>
+                    </div>
+                </div>
+
+                <!-- 内容区：日历 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <div class="bg-white rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <button id="cal-prev" class="p-2 rounded-md hover:bg-gray-100">◀</button>
+                                <div id="cal-month-year" class="font-semibold text-gray-800"></div>
+                                <button id="cal-next" class="p-2 rounded-md hover:bg-gray-100">▶</button>
+                            </div>
+                            <div class="text-sm text-gray-500">点击日期查看当天打卡时间</div>
+                        </div>
+
+                        <div id="calendar" class="grid grid-cols-7 gap-2 text-center"></div>
+
+                        <div id="day-details" class="mt-4 hidden bg-gray-50 rounded-lg p-3">
+                            <h4 class="font-medium text-gray-800 mb-2">日期: <span id="detail-date"></span></h4>
+                            <div id="detail-times" class="text-sm text-gray-700"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 数据报告菜单页面 -->
+            <div class="page" id="report-menu-page">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="goBack()">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">数据报告</h1>
+                    </div>
+                    <button>
+                        <iconify-icon icon="mdi:export-variant" class="text-xl text-gray-600"></iconify-icon>
+                    </button>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white rounded-xl p-6 text-center cursor-pointer hover:shadow-md transition-shadow" onclick="showPage('my-reports-page')">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <iconify-icon icon="mdi:chart-line" class="text-blue-500 text-3xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-2">我的报告</h3>
+                            <p class="text-xs text-gray-500">个人工作数据分析</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-6 text-center cursor-pointer hover:shadow-md transition-shadow" onclick="showPage('team-reports-page')">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <iconify-icon icon="mdi:account-group" class="text-green-500 text-3xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-2">团队报告</h3>
+                            <p class="text-xs text-gray-500">团队整体表现分析</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 我的报告页面 -->
+            <div class="page" id="my-reports-page">
+                <!-- 顶部导航 -->
+                <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button class="mr-3" onclick="showPage('report-menu-page')">
+                            <iconify-icon icon="mdi:arrow-left" class="text-xl text-gray-600"></iconify-icon>
+                        </button>
+                        <h1 class="text-xl font-bold text-gray-800">我的报告</h1>
+                    </div>
+                </div>
+                
+                <!-- 内容区 -->
+                <div class="content-area p-4 bg-gray-50">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow" onclick="showPage('report-page')">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <iconify-icon icon="mdi:clock" class="text-blue-500 text-2xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 text-sm mb-1">Time Summary</h3>
+                            <p class="text-xs text-gray-500">时间汇总报告</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <iconify-icon icon="mdi:chart-bar" class="text-green-500 text-2xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 text-sm mb-1">Productivity Report</h3>
+                            <p class="text-xs text-gray-500">生产力报告</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <iconify-icon icon="mdi:check-circle" class="text-purple-500 text-2xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 text-sm mb-1">Adherence Report</h3>
+                            <p class="text-xs text-gray-500">遵循性报告</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-4 text-center cursor-pointer hover:shadow-md transition-shadow">
+                            <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <iconify-icon icon="mdi:trophy" class="text-amber-500 text-2xl"></iconify-icon>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 text-sm mb-1">KPI Adherence</h3>
+                            <p class="text-xs text-gray-500">KPI达成报告</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 底部导航栏 -->
+        <div class="h-20 bg-white border-t border-gray-200 flex items-center justify-around">
+            <button class="tab-button flex flex-col items-center text-blue-500 active" onclick="showPage('messages-page')" data-page="messages-page">
+                <iconify-icon icon="mdi:message" class="text-2xl"></iconify-icon>
+                <span class="text-xs mt-1">消息</span>
+                <div class="tab-indicator w-1 h-1 rounded-full mt-1"></div>
+            </button>
+            <button class="tab-button flex flex-col items-center text-gray-500" onclick="showPage('workplace-page')" data-page="workplace-page">
+                <iconify-icon icon="mdi:view-dashboard" class="text-2xl"></iconify-icon>
+                <span class="text-xs mt-1">工作台</span>
+                <div class="tab-indicator w-1 h-1 rounded-full mt-1"></div>
+            </button>
+            <button class="tab-button flex flex-col items-center text-gray-500" onclick="showPage('contacts-page')" data-page="contacts-page">
+                <iconify-icon icon="mdi:account-group" class="text-2xl"></iconify-icon>
+                <span class="text-xs mt-1">通讯录</span>
+                <div class="tab-indicator w-1 h-1 rounded-full mt-1"></div>
+            </button>
+            <button class="tab-button flex flex-col items-center text-gray-500" onclick="showPage('profile-page')" data-page="profile-page">
+                <iconify-icon icon="mdi:account" class="text-2xl"></iconify-icon>
+                <span class="text-xs mt-1">我的</span>
+                <div class="tab-indicator w-1 h-1 rounded-full mt-1"></div>
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // 页面切换功能
+        function showPage(pageId) {
+            // 隐藏所有页面
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 显示目标页面
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.add('active');
+                targetPage.classList.add('slide-in');
+                
+                // 移除动画类
+                setTimeout(() => {
+                    targetPage.classList.remove('slide-in');
+                }, 300);
+            }
+            
+            // 更新底部导航状态
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+                if (button.dataset.page === pageId) {
+                    button.classList.add('active');
+                }
+            });
+        }
+        
+        // 页面切换功能
+        function showPage(pageId) {
+            // 隐藏所有页面
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // 显示目标页面
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.add('active');
+                // 如果打开打卡历史页，初始化日历
+                if (pageId === 'attendance-history' && typeof initAttendanceHistory === 'function') {
+                    initAttendanceHistory();
+                }
+            }
+
+            // 更新底部导航状态
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+            const activeBtn = document.querySelector(`.tab-button[data-page="${pageId}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+            
+        
+        
+        // 返回功能
+        function goBack() {
+            // 返回到工作台页面
+            showPage('workplace-page');
+        }
+        
+        // 切换部门展开/收起
+        function toggleDepartment(deptId) {
+            const content = document.getElementById(deptId + '-content');
+            const icon = document.getElementById(deptId + '-icon');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(90deg)';
+            } else {
+                content.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+        
+        // 保存语言设置
+        function saveLanguage() {
+            const selectedLanguage = document.querySelector('input[name="language"]:checked').value;
+            const languageText = {
+                'zh-CN': '简体中文',
+                'zh-TW': '繁体中文',
+                'en': 'English',
+                'vi': 'Tiếng Việt'
+            };
+            
+            // 更新当前语言显示
+            document.getElementById('current-language').textContent = languageText[selectedLanguage];
+            
+            if(typeof window.switchLang === 'function'){ window.switchLang(selectedLanguage); }
+            alert(`Language switched to: ${languageText[selectedLanguage]}`);
+            
+            // 返回设置页面
+            showPage('settings');
+        }
+        
+        // 添加点击反馈效果
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为所有可点击元素添加点击效果
+            const clickableElements = document.querySelectorAll('button, .cursor-pointer');
+            clickableElements.forEach(element => {
+                element.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+            
+            // 添加页面加载动画
+            setTimeout(() => {
+                document.body.classList.add('fadeIn');
+            }, 100);
+        });
+        
+        // 模拟消息未读数量
+        function updateUnreadCount() {
+            const messageTab = document.querySelector('[data-page="messages-page"]');
+            const badge = messageTab.querySelector('.unread-badge');
+            if (!badge) {
+                const newBadge = document.createElement('div');
+                newBadge.className = 'absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center unread-badge';
+                newBadge.innerHTML = '<span class="text-white text-xs">3</span>';
+                messageTab.style.position = 'relative';
+                messageTab.appendChild(newBadge);
+            }
+        }
+        
+        // ========== 发起群聊页面功能 ==========
+        
+        // 存储选中的联系人
+        let selectedContacts = [];
+        
+        // 切换联系人选择
+        function toggleContact(contactElement) {
+            // 找到最近的复选框
+            const checkbox = contactElement.closest('.contact-item').querySelector('.contact-checkbox');
+            const contactName = checkbox.getAttribute('data-name');
+            
+            // 切换复选框状态
+            checkbox.checked = !checkbox.checked;
+            
+            // 更新选择状态
+            updateContactSelection(checkbox, contactName);
+        }
+        
+        // 更新联系人选择状态
+        function updateContactSelection(checkbox, contactName) {
+            const index = selectedContacts.indexOf(contactName);
+            
+            if (checkbox.checked) {
+                if (index === -1) {
+                    selectedContacts.push(contactName);
+                }
+            } else {
+                if (index > -1) {
+                    selectedContacts.splice(index, 1);
+                }
+            }
+            
+            updateSelectionBar();
+        }
+        
+        // 更新底部选择栏
+        function updateSelectionBar() {
+            const selectionBar = document.getElementById('selection-bar');
+            const selectedCount = document.getElementById('selected-count');
+            const selectedNames = document.getElementById('selected-names');
+            const cancelBtn = document.getElementById('cancel-selection-btn');
+            
+            selectedCount.textContent = selectedContacts.length;
+            
+            // 显示选中的联系人名字（最多显示3个）
+            if (selectedContacts.length > 0) {
+                let namesText = selectedContacts.slice(0, 3).join(', ');
+                if (selectedContacts.length > 3) {
+                    namesText += ` and ${selectedContacts.length} others`;
+                }
+                selectedNames.textContent = namesText;
+                selectedNames.setAttribute('title', selectedContacts.join(', '));
+            } else {
+                selectedNames.textContent = '';
+                selectedNames.removeAttribute('title');
+            }
+            
+            if (selectedContacts.length > 0) {
+                // 显示底部操作栏
+                selectionBar.classList.remove('hidden', '-translate-y-full');
+                selectionBar.classList.add('translate-y-0');
+                
+                // 显示取消选择按钮
+                cancelBtn.classList.remove('hidden');
+                cancelBtn.classList.add('block');
+            } else {
+                // 隐藏底部操作栏
+                selectionBar.classList.remove('translate-y-0');
+                selectionBar.classList.add('-translate-y-full');
+                
+                // 隐藏取消选择按钮
+                cancelBtn.classList.remove('block');
+                cancelBtn.classList.add('hidden');
+                
+                // 延迟隐藏底部栏，让过渡动画完成
+                setTimeout(() => {
+                    if (selectedContacts.length === 0) {
+                        selectionBar.classList.add('hidden');
+                    }
+                }, 300);
+            }
+        }
+        
+        // 取消选择
+        function cancelSelection() {
+            // 取消所有复选框的选择
+            document.querySelectorAll('#new-chat .contact-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // 清空选中列表
+            selectedContacts = [];
+            
+            // 更新UI
+            updateSelectionBar();
+        }
+        
+        // 发起群聊
+        function startGroupChat() {
+            if (selectedContacts.length < 2) {
+                alert('Please select at least two contacts');
+                return;
+            }
+            
+            // 这里可以添加实际的群聊创建逻辑
+            console.log('Start group chat, members:', selectedContacts);
+            
+            // 示例：显示成功消息
+            alert(`Group created!\n\nMembers: ${selectedContacts.join(', ')}\n\nRedirecting to group chat...`);
+            
+            // 清空选择
+            cancelSelection();
+            
+            // 返回消息页面
+            showPage('messages-page');
+        }
+        
+        // 搜索联系人功能
+        function searchContacts() {
+            const searchInput = document.querySelector('#new-chat input[type="text"]');
+            const searchTerm = searchInput.value.toLowerCase();
+            const contactItems = document.querySelectorAll('#new-chat .contact-item');
+            
+            contactItems.forEach(item => {
+                const name = item.querySelector('.contact-name').textContent.toLowerCase();
+                const title = item.querySelector('.contact-title').textContent.toLowerCase();
+                
+                if (name.includes(searchTerm) || title.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        
+        // 初始化复选框事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为复选框添加事件监听
+            const checkboxes = document.querySelectorAll('#new-chat .contact-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const contactName = this.getAttribute('data-name');
+                    updateContactSelection(this, contactName);
+                });
+            });
+            
+            // 初始化搜索功能
+            const searchInput = document.querySelector('#new-chat input[type="text"]');
+            if (searchInput) {
+                searchInput.addEventListener('input', searchContacts);
+            }
+        });
+        
+        // ========== 新增功能结束 ==========
+        
+        // 初始化
+        setTimeout(() => {
+            console.log('企业协同管理平台已加载');
+            updateUnreadCount();
+        }, 1000);
+
+        // ========== Emoji、附件、语音识别功能（通用） ==========
+        const emojiList = ['😀','😁','😂','🤣','😊','😅','😍','😘','😎','👍','🙏','🎉','💡','🔥','✨','📎','✔️'];
+
+        function toggleEmojiPicker(event, inputId) {
+            const picker = document.getElementById('emoji-picker');
+            if (!picker) return;
+            // 设置目标输入框 id
+            picker.dataset.target = inputId;
+            // 切换显示
+            picker.classList.toggle('hidden');
+            event.stopPropagation();
+        }
+
+        function insertEmoji(emoji) {
+            const picker = document.getElementById('emoji-picker');
+            if (!picker) return;
+            const targetId = picker.dataset.target;
+            const input = document.getElementById(targetId);
+            if (!input) return;
+            const start = input.selectionStart || input.value.length;
+            const end = input.selectionEnd || start;
+            input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+            input.focus();
+            const pos = start + emoji.length;
+            input.setSelectionRange(pos, pos);
+        }
+
+        function handleFileSelect(event, inputId) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+            const names = Array.from(files).map(f => f.name).join(', ');
+            const input = document.getElementById(inputId);
+            if (input) {
+                // 将文件名添加到输入框中，作为示例展示
+                input.value = input.value + (input.value ? ' ' : '') + '[' + names + ']';
+            }
+            console.log('Selected files for', inputId, names);
+        }
+
+        const _recognizers = {};
+        function toggleSpeechRecognition(btn, inputId) {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Your browser does not support speech recognition');
+                return;
+            }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!_recognizers[inputId]) {
+                const r = new SpeechRecognition();
+                r.lang = 'zh-CN';
+                r.interimResults = false;
+                r.maxAlternatives = 1;
+                r.onresult = function(evt) {
+                    const transcript = evt.results[0][0].transcript;
+                    const input = document.getElementById(inputId);
+                    if (input) input.value = input.value + transcript;
+                };
+                r.onend = function() {
+                    if (btn) btn.classList.remove('bg-gray-200');
+                    if (_recognizers[inputId]) _recognizers[inputId].running = false;
+                };
+                _recognizers[inputId] = {instance: r, running: false};
+            }
+
+            const obj = _recognizers[inputId];
+            if (!obj.running) {
+                try {
+                    obj.instance.start();
+                    obj.running = true;
+                    if (btn) btn.classList.add('bg-gray-200');
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+                obj.instance.stop();
+                obj.running = false;
+                if (btn) btn.classList.remove('bg-gray-200');
+            }
+        }
+
+        function sendMessage(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+            // 简单示例：在控制台打印、清空输入并收起表情面板
+            console.log('发送消息 ->', text);
+            input.value = '';
+            const picker = document.getElementById('emoji-picker');
+            if (picker) picker.classList.add('hidden');
+        }
+
+        // 点击任意地方关闭表情面板
+        document.addEventListener('click', function() {
+            const picker = document.getElementById('emoji-picker');
+            if (picker) picker.classList.add('hidden');
+        });
+    </script>
+
+    <!-- Emoji picker 面板（通用） -->
+    <div id="emoji-picker" data-target="" class="hidden fixed bottom-28 left-1/2 transform -translate-x-1/2 bg-white p-3 rounded-xl shadow-lg z-40 w-[320px]">
+        <div class="grid grid-cols-8 gap-2">
+            <button class="p-1 text-xl" onclick="insertEmoji('😀'); event.stopPropagation();">😀</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('😁'); event.stopPropagation();">😁</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('😂'); event.stopPropagation();">😂</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('🤣'); event.stopPropagation();">🤣</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('😊'); event.stopPropagation();">😊</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('😅'); event.stopPropagation();">😅</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('😍'); event.stopPropagation();">😍</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('😘'); event.stopPropagation();">😘</button>
+
+            <button class="p-1 text-xl" onclick="insertEmoji('😎'); event.stopPropagation();">😎</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('👍'); event.stopPropagation();">👍</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('🙏'); event.stopPropagation();">🙏</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('🎉'); event.stopPropagation();">🎉</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('💡'); event.stopPropagation();">💡</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('🔥'); event.stopPropagation();">🔥</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('✨'); event.stopPropagation();">✨</button>
+            <button class="p-1 text-xl" onclick="insertEmoji('📎'); event.stopPropagation();">📎</button>
+        </div>
+    </div>
+
+    <script>
+        // 打卡日历脚本（独立脚本块）
+        (function(){
+            // 示例数据，可替换为后端注入的真实记录
+            window.attendanceData = window.attendanceData || {};
+
+            function pad(n){return String(n).padStart(2,'0');}
+
+            function renderCalendar(month, year){
+                const cal = document.getElementById('calendar');
+                const header = document.getElementById('cal-month-year');
+                const details = document.getElementById('day-details');
+                if(!cal || !header) return;
+                const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                header.textContent = `${monthNames[month]} ${year}`;
+                cal.innerHTML = '';
+                ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(w=>{const el=document.createElement('div');el.className='text-xs text-gray-500';el.textContent=w;cal.appendChild(el);});
+                const firstDay = new Date(year, month, 1);
+                const startWeek = firstDay.getDay();
+                const daysInMonth = new Date(year, month+1, 0).getDate();
+                for(let i=0;i<startWeek;i++){const e=document.createElement('div');cal.appendChild(e);}                
+                for(let d=1; d<=daysInMonth; d++){
+                    const btn=document.createElement('button');
+                    btn.className='p-2 rounded-md hover:bg-blue-50 transition-colors';
+                    const dateStr = `${year}-${pad(month+1)}-${pad(d)}`;
+                    const has = (window.attendanceData && window.attendanceData[dateStr]);
+                    btn.innerHTML = `<div class="text-sm text-gray-800">${d}</div>` + (has?'<div class="text-xs text-green-500 mt-1">•</div>':'');
+                    btn.onclick = function(e){ e.stopPropagation(); showDay(dateStr); };
+                    cal.appendChild(btn);
+                }
+                const prev = document.getElementById('cal-prev');
+                const next = document.getElementById('cal-next');
+                if(prev) prev.onclick = ()=>{ changeMonth(-1); };
+                if(next) next.onclick = ()=>{ changeMonth(1); };
+                if(details) details.classList.add('hidden');
+            }
+
+            // state
+            window._attMonth = window._attMonth || (new Date()).getMonth();
+            window._attYear = window._attYear || (new Date()).getFullYear();
+
+            window.initAttendanceHistory = function(){
+                const y = window._attYear; const m = window._attMonth+1;
+                if(Object.keys(window.attendanceData).length===0){
+                    window.attendanceData[`${y}-${pad(m)}-01`] = ['09:15 Clock In','18:02 Clock Out'];
+                    window.attendanceData[`${y}-${pad(m)}-03`] = ['09:12 Clock In','17:58 Clock Out'];
+                    window.attendanceData[`${y}-${pad(m)}-15`] = ['09:18 Clock In','18:10 Clock Out'];
+                }
+                renderCalendar(window._attMonth, window._attYear);
+            }
+
+            function changeMonth(delta){
+                window._attMonth += delta;
+                if(window._attMonth<0){window._attMonth=11; window._attYear--;}
+                if(window._attMonth>11){window._attMonth=0; window._attYear++;}
+                renderCalendar(window._attMonth, window._attYear);
+            }
+
+            function showDay(dateStr){
+                const details = document.getElementById('day-details');
+                const dateEl = document.getElementById('detail-date');
+                const timesEl = document.getElementById('detail-times');
+                if(!details||!dateEl||!timesEl) return;
+                dateEl.textContent = dateStr;
+                const arr = (window.attendanceData && window.attendanceData[dateStr]) || [];
+                timesEl.innerHTML = '';
+                if(arr.length===0){ timesEl.innerHTML = '<div class="text-sm text-gray-500">No attendance records</div>'; }
+                else{ arr.forEach(it=>{ const r=document.createElement('div'); r.className='py-1'; r.textContent=it; timesEl.appendChild(r); }); }
+                details.classList.remove('hidden');
+            }
+
+            window.changeMonth = changeMonth;
+            window.showDay = showDay;
+        })();
+    </script>
+
+<script>
+function openCreateModal(){
+    const m=document.getElementById('create-modal');
+    if(m) m.classList.remove('hidden');
+}
+function closeCreateModal(){
+    const m=document.getElementById('create-modal');
+    if(m) m.classList.add('hidden');
+}
+function openProjectCreate(){
+    closeCreateModal();
+    showPage('project-create');
+}
+function openTaskCreate(){
+    closeCreateModal();
+    showPage('task-create');
+}
+
+function createProjectSubmit(e){
+    e.preventDefault();
+    const name=document.getElementById('proj-name')?.value;
+    const desc=document.getElementById('proj-desc')?.value;
+    const type=document.getElementById('proj-type')?.value;
+    const manager=document.getElementById('proj-manager')?.value;
+    const team = Array.from(document.getElementById('proj-team')?.selectedOptions||[]).map(o=>o.value);
+    const start=document.getElementById('proj-start')?.value;
+    const end=document.getElementById('proj-end')?.value;
+    console.log('Create project', {name,desc,type,manager,team,start,end});
+    alert('Project created (demo): '+name);
+    showPage('project-page');
+}
+
+function createTaskSubmit(e){
+    e.preventDefault();
+    const name=document.getElementById('task-name')?.value;
+    const desc=document.getElementById('task-desc')?.value;
+    const owner=document.getElementById('task-owner')?.value;
+    const creator=document.getElementById('task-creator')?.value;
+    const priority=document.getElementById('task-priority')?.value;
+    const date=document.getElementById('task-date')?.value;
+    console.log('Create task', {name,desc,owner,creator,priority,date});
+    alert('Task created (demo): '+name);
+    showPage('project-list-page');
+}
+</script>
+<script>
+(function(){
+    const phraseMap = {
+        '消息':'Messages','工作台':'Workplace','通讯录':'Contacts','我的':'Profile','项目管理':'Project Management','数据报告':'Data Reports','公司政策':'Company Policy','设置':'Settings','个人资料':'Personal Info',
+        '创建':'Create','新增项目':'New Project','新增任务':'New Task','任务名称':'Task Name','任务描述':'Task Description','负责人':'Owner','分配人':'Assignee','优先级':'Priority','低':'Low','中':'Medium','高':'High','任务日期':'Task Date','截止时间':'Deadline','团队成员':'Team Members','项目类型':'Project Type','项目经理':'Project Manager','开始时间':'Start Date','结束时间':'End Date','选择团队成员（多选）':'Select Team Members (Multi-select)',
+        '取消':'Cancel','创建项目':'Create Project','创建任务':'Create Task','查看详情':'View Details','查看全部':'View All','发消息':'Send Message','发起群聊':'Start Group Chat','群聊创建成功！':'Group created!',
+        '搜索联系人、聊天记录':'Search contacts, messages','输入消息...':'Type a message...','点击日期查看当天打卡时间':'Click a date to view times','日期':'Date',
+        '审批':'Approvals','审批中心':'Approval Center','费用申请':'Expense Application','请假申请':'Leave Application','费用历史':'Expense History','金额':'Amount','币种':'Currency','申请人':'Applicant','申请时间':'Applied At','审批人':'Reviewer','已通过':'Approved','已驳回':'Rejected','待审批':'Pending',
+        '打卡历史':'Attendance History','考勤打卡':'Attendance','今日考勤':'Today Attendance','上班打卡':'Clock In','下班打卡':'Clock Out','未打卡':'Not Clocked','本月统计':'Monthly Summary','正常':'Normal','迟到':'Late','早退':'Early Leave','缺勤':'Absent',
+        '系统通知':'System Notification','会议材料已经发送，请查收':'Meeting materials have...','您的请假申请已通过审批':'Your leave request has been approved','收到，我会仔细查看':'Received, I will review carefully','好的，有问题随时沟通':'Okay, reach out anytime if issues',
+        '北京总部':'Beijing HQ','产品技术部':'Product & Engineering','市场部':'Marketing','人事部':'HR','财务部':'Finance','上海分公司':'Shanghai Branch','深圳分公司':'Shenzhen Branch','杭州分公司':'Hangzhou Branch',
+        '产品部群聊':'Product Team Group Chat','张经理':'Manager Zhang','张三':'Zhang San','李四':'Li Si','王五':'Wang Wu','李华':'Li Hua','王芳':'Wang Fang','刘红':'Liu Hong','陈总':'Mr. Chen',
+        '多语言设置':'Language Settings','选择语言':'Choose Language','提示':'Note','切换语言后，整个应用界面将显示为所选语言。部分内容的翻译可能需要重新启动应用才能完全生效。':'After switching, the UI uses the selected language. Some changes may require restart.',
+        '帮助与反馈':'Help & Feedback','退出登录':'Log Out','取消选择':'Cancel selection','搜索联系人':'Search contacts','表情':'Emoji','附件':'Attachment','语音转文字':'Speech to text','在线':'Online','离线':'Offline','产品部主管':'Product Department Lead','市场经理':'Marketing Manager','前端工程师':'Frontend Engineer','产品经理':'Product Manager'
+    };
+    window.__i18n_originals = window.__i18n_originals || new WeakMap();
+    function isVisibleTextNode(n){ if(n.nodeType!==Node.TEXT_NODE) return false; const t=n.nodeValue.trim(); if(!t) return false; const p=n.parentElement; if(!p) return false; const tag=p.tagName.toLowerCase(); if(['script','style','noscript','code','textarea'].includes(tag)) return false; return true; }
+    function getTextNodes(root){ const w=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false); const nodes=[]; let n; while(n=w.nextNode()){ if(isVisibleTextNode(n)) nodes.push(n); } return nodes; }
+    function translateToEnglish(){ const nodes=getTextNodes(document.body); nodes.forEach(node=>{ if(!window.__i18n_originals.has(node)) window.__i18n_originals.set(node, node.nodeValue); let txt=window.__i18n_originals.get(node); Object.keys(phraseMap).forEach(ch=>{ if(txt.indexOf(ch)!==-1) txt=txt.split(ch).join(phraseMap[ch]); }); if(node.nodeValue!==txt) node.nodeValue=txt; }); const attrs=['placeholder','title','alt','value']; attrs.forEach(attr=>{ document.querySelectorAll('['+attr+']').forEach(el=>{ try{ const k='__i18n_orig_'+attr; if(el[k]===undefined) el[k]=el.getAttribute(attr)||''; let v=el[k]; Object.keys(phraseMap).forEach(ch=>{ if(v && v.indexOf(ch)!==-1) v=v.split(ch).join(phraseMap[ch]); }); if(el.getAttribute(attr)!==v) el.setAttribute(attr,v); }catch(e){} }); }); }
+    function restoreChinese(){ const nodes=getTextNodes(document.body); nodes.forEach(node=>{ if(window.__i18n_originals.has(node)){ const orig=window.__i18n_originals.get(node); if(node.nodeValue!==orig) node.nodeValue=orig; } }); ['placeholder','title','alt','value'].forEach(attr=>{ document.querySelectorAll('['+attr+']').forEach(el=>{ try{ const k='__i18n_orig_'+attr; if(el[k]!==undefined && el[k]!==null) el.setAttribute(attr, el[k]); }catch(e){} }); }); }
+    window.switchLang = function(lang){ if(lang==='en') translateToEnglish(); else restoreChinese(); try{ localStorage.setItem('jojo_lang', lang); }catch(e){} };
+    document.addEventListener('DOMContentLoaded', function(){ const saved = localStorage.getItem('jojo_lang') || 'en'; if(saved==='en') window.switchLang('en'); else window.switchLang('zh-CN'); document.querySelectorAll('input[name="language"]').forEach(r=>{ r.addEventListener('change', function(){ const v=this.value; window.switchLang(v==='en' ? 'en' : 'zh-CN'); }); }); });
+})();
+</script>
+<script>
+// (debug auto-open removed)
+function clickEffect(el){
+    if(!el) return;
+    // save original inline styles
+    const origTransform = el.style.transform || '';
+    const origOpacity = el.style.opacity || '';
+    el.style.transition = 'transform 120ms ease, opacity 120ms ease';
+    el.style.transform = 'scale(0.97)';
+    el.style.opacity = '0.85';
+    setTimeout(()=>{
+        el.style.transform = origTransform;
+        el.style.opacity = origOpacity;
+    },140);
+}
+</script>
+<script>
+// (runtime relocate removed — performed static cleanup)
+</script>
+<!-- 去掉右下角预览角标（Kimi OK Computer） -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    try{
+        // 添加强制隐藏样式以防注入的 badge 显示
+        const s = document.createElement('style');
+        s.textContent = [
+            '.msw-widget, .preview-widget, .moonshot-widget, #msw-badge, .kimi-widget, .kimi-badge, .preview-badge { display: none !important; }',
+            '[class*="preview" i] { display: none !important; }',
+            '[id*="preview" i] { display: none !important; }',
+            '[aria-label*="Kimi" i] { display: none !important; }'
+        ].join('\n');
+        document.head.appendChild(s);
+
+        // 移除包含特定文本的元素（防止角标通过内联内容注入）
+        const keywords = ['Kimi OK Computer','Kimi OK','Kimi','OK Computer'];
+        const elems = Array.from(document.querySelectorAll('body *'));
+        elems.forEach(el => {
+            try{
+                if(!el || !el.textContent) return;
+                const txt = el.textContent.trim();
+                for(const k of keywords){
+                    if(txt.indexOf(k) !== -1){
+                        el.remove();
+                        return;
+                    }
+                }
+            }catch(e){}
+        });
+
+        // 额外移除已知可能注入的节点或脚本
+        document.querySelectorAll('script[src*="preview-widgets"], script[src*="moonshot"]').forEach(s=>s.remove());
+        document.querySelectorAll('[id^="preview-"], .preview-widget, .moonshot-widget, #msw-badge, .msw-widget').forEach(n=>n.remove());
+    }catch(e){
+        console.warn('remove preview badge error', e);
+    }
+});
+</script>
